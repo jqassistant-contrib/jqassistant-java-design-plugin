@@ -1,0 +1,32 @@
+<jqa:jqassistant-rules xmlns:jqa="http://www.buschmais.com/jqassistant/core/analysis/rules/schema/v1.2">
+
+    <concept id="java-design:Immutable">
+        <description>Labels all classes with an immutable state as "Immutable".</description>
+        <cypher><![CDATA[
+            MATCH
+              p=(immutable:Class)-[:EXTENDS*0..]->(super:Class)
+            WHERE
+              not (super)-[:EXTENDS]->(:Class)
+            WITH
+              immutable, nodes(p) as hierarchy
+            UNWIND
+              hierarchy as class
+            MATCH
+              (class)-[:DECLARES]->(constructor:Constructor)
+            OPTIONAL MATCH
+              (class)-[:DECLARES]->(:Field)<-[:WRITES]-(writeAccessor:Method)
+            WITH
+              immutable, collect(constructor) as constructors, collect(writeAccessor) as writeAccessors
+            WHERE
+              all (writeAccessor in writeAccessors
+                WHERE
+                  writeAccessor in constructors
+              )
+            SET
+              immutable:Immutable
+            RETURN
+              immutable
+      ]]></cypher>
+    </concept>
+
+</jqa:jqassistant-rules>
