@@ -1,7 +1,7 @@
 <jqa:jqassistant-rules xmlns:jqa="http://www.buschmais.com/jqassistant/core/analysis/rules/schema/v1.2">
 
     <concept id="java-design:Immutable">
-        <description>Labels all classes with an immutable state as "Immutable".</description>
+        <description>Labels all classes with an immutable state with "Design" and "Immutable".</description>
         <cypher><![CDATA[
             MATCH
               p=(immutable:Class)-[:EXTENDS*0..]->(super:Class)
@@ -23,10 +23,34 @@
                   writeAccessor in constructors
               )
             SET
-              immutable:Immutable
+              immutable:Design:Immutable
             RETURN
               immutable
       ]]></cypher>
+    </concept>
+
+    <concept id="java-design:Singleton">
+        <description>Labels Java classes that implement the Singleton pattern with "Design" and "Singleton".</description>
+        <cypher><![CDATA[
+            MATCH
+              (singleton:Type)-[:DECLARES]->(constructor:Constructor)
+            WHERE NOT
+              singleton:Enum
+            WITH
+              singleton, collect(constructor) as constructors
+            WHERE
+              all(constructor in constructors WHERE constructor.visibility = "private")
+            WITH
+              singleton
+            MATCH
+              (singleton)-[:DECLARES]->(instance:Field)-[:OF_TYPE]->(:Type)<-[:EXTENDS|IMPLEMENTS*0..]-(singleton)
+            WHERE
+              has(instance.static)
+            SET
+              singleton:Design:Singleton
+            RETURN
+              singleton
+        ]]></cypher>
     </concept>
 
 </jqa:jqassistant-rules>
